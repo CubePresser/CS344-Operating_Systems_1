@@ -1,0 +1,4 @@
+#!/bin/bash
+clear
+gcc -g smallsh.c -o smallsh
+valgrind --leak-check=yes --show-reachable=yes smallsh

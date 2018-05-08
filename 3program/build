@@ -1,0 +1,5 @@
+#!/bin/bash
+clear
+ls
+gcc smallsh.c -o smallsh
+gcc changeDirectory.c -o changeDirectory

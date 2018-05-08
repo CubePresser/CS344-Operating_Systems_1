@@ -1,0 +1,83 @@
+#!/bin/bash
+
+TMP="tmp$$"
+TMP2="tmp2$$"
+col=0
+row=0
+index=0
+medianFile="medianFile$$"
+averageFile="averageFile$$"
+
+
+#Get arguments
+if [ $# = 1 ]
+then
+    cat > $TMP
+elif [ $# = 2 ]
+then
+    cat $2 > $TMP
+fi
+
+
+
+#Count number of rows
+while read aLine
+do
+    row=$((row + 1))
+done < $TMP
+
+#obtain one line from the input so that I can count the number of columns using the number of characters
+read oneLine < $TMP
+    for i in $oneLine
+    do
+        sum=0
+        avg=0
+        num=0
+        col=$((col + 1))
+
+        #Cut characters in a field out until a \t is reached then move to next line and cut again
+        #cut -f$col -d$'\t' $TMP > $TMP2
+
+        cut -f$col -d$'\t' $TMP | sort -V > $TMP2
+
+        #Sort the extracted column by numbers
+        #sort -V $TMP2 > $TMP3
+
+        #The location of the median is half the lines in the column plus one
+        index=`expr $row / 2`
+        index=$((index + 1))
+
+        head -$index $TMP2 | tail -1 | tr '\n' '\t' >> $medianFile
+
+        #Calculate Average
+        #Grab a line from the sorted column and take the first number in the for loop then add this number to the sum
+        while read thisLine
+        do
+            #Take first number from line and add to sum
+            for j in $thisLine
+            do
+                sum=$((sum + j))
+            done
+        done < $TMP2
+
+        #Uses the formula (a+(b/2))/b to get proper rounding in this integer division
+        num=`expr $row / 2`
+        avg=`expr $sum + $num`
+        avg=`expr $avg / $row`
+
+        #print the average
+        echo "$avg" | tr '\n' '\t' >> $averageFile
+
+    done
+
+echo "Medians"
+cat $medianFile
+echo
+echo "Averages"
+cat $averageFile
+echo
+
+rm -f $TMP
+rm -f $TMP2
+rm -f $medianFile
+rm -f $averageFile

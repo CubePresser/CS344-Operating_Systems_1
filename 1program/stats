@@ -1,0 +1,206 @@
+#!/bin/bash
+
+#Operating Systems I - Program 1
+#Jonathan Jones 2017
+# --- Recieves a set of numbers via file or stdin and an argument for rows or columns then calculates the median and
+# average of these numbers either through rows or columns ---
+
+
+#Declaring Variables
+TMP="tmp$$"
+TMP2="tmp2$$"
+TMP3="tmp3$$"
+medianFile="medianFile$$"
+averageFile="averageFile$$"
+
+tempCol="tempcolfile$$"
+tempRow="temprowfile$$"
+
+row=0
+col=0
+index=0
+
+#Trap any end process statements such as "CTRL-C" and remove all temporary files before exiting with an error value 1
+trap "rm -f $TMP; rm -f $TMP2; rm -f $TMP3; rm -f $medianFile; rm -f $averageFile; rm -f $tempCol; rm -f $tempRow; exit 1" INT HUP TERM
+
+#Initial check to see if the first argument is a valud "-r*" or "-c*"
+if [[ $1 == -r* ]]
+then
+    #Wasn't sure how to do a conditional check without actually doing anything during it so I echoed to the /dev/null so that essentially nothing was happening
+    echo >/dev/null
+elif [[ $1 == -c* ]]
+then
+    echo>/dev/null
+else
+    echo "./stats {-rows|-cols} [file]" >&2
+    exit 1
+fi
+
+#Get arguments
+#Input is given through stdin
+if [ $# = 1 ]
+then
+    cat > $TMP
+#Input is given in the form of a file
+elif [ $# = 2 ]
+then
+    #Check that the file given in the argument has read permissions
+    if [ ! -r $2 ]
+    then
+        echo "./stats: cannot read $2" >&2
+        rm -f $TMP
+        exit 1
+    fi
+    cat $2 > $TMP
+else
+    echo "./stats {-rows|-cols} [file]" >&2
+    rm -f $TMP
+    exit 1
+fi
+
+
+#Count the number of rows
+while read aLine
+do
+    row=$((row + 1)) 
+done < $TMP
+
+#Count number of columns
+read anotherLine < $TMP
+for k in $anotherLine
+do
+    col=$((col + 1))
+done
+
+#Row operations segment
+if [[ $1 == -r* ]]
+then
+
+    echo "Average Median"
+    
+    #Read each line of the file
+    while read oneLine
+    do
+        #Set variables used to zero
+        sum=0
+        num=0
+        avg=0
+        index=0
+        
+        #Read each element of oneLine and place them one by one into a column form in TMP3
+        for i in $oneLine
+        do
+            echo "$i" >> $TMP2
+        done
+
+        #Sort numbers in a column
+        sort -V $TMP2 > $tempCol
+
+        #Move the contents of tempCol into tempRow but convert new lines into tabs essentially converting the columns back into rows
+        cat $tempCol | tr '\n' '\t' > $tempRow
+        > $TMP2
+    
+       #Calculate the Average
+        #Get the sum
+        for j in $oneLine
+        do
+            sum=$((sum + j))
+        done
+   
+        #avg = (a+(b/2))/b
+        num=`expr $col / 2`
+        avg=`expr $sum + $num`
+        avg=`expr $avg / $col`
+    
+        #Print average and change the newline echo provides into a tab
+        echo "$avg" | tr '\n' '\t'
+
+        #Calculate the median
+    
+        index=`expr $col / 2`
+        index=$((index + 1))
+    
+        cut -f$index -d$'\t' $tempRow
+ 
+
+
+    done < $TMP
+
+#Col operations
+elif [[ $1 == -c* ]]
+then
+
+#Set variables used to zero
+index=0
+col=0
+    #obtain one line from the input so that I can count the number of columns using the number of characters
+    read theLine < $TMP
+        for u in $theLine
+        do
+            sum=0
+            avg=0
+            num=0
+            col=$((col + 1))
+    
+            #Cut characters in a field out until a \t is reached then move to next line and cut again
+            #cut -f$col -d$'\t' $TMP > $TMP2
+    
+            cut -f$col -d$'\t' $TMP | sort -V > $TMP3
+
+            #Sort the extracted column by numbers
+            #sort -V $TMP2 > $TMP3
+    
+            #The location of the median is half the lines in the column plus one
+            index=`expr $row / 2`
+            index=$((index + 1))
+    
+            head -$index $TMP3 | tail -1 | tr '\n' '\t' >> $medianFile
+    
+            #Calculate Average
+            #Grab a line from the sorted column and take the first number in the for loop then add this number to the sum
+            while read thisLine
+            do
+                #Take first number from line and add to sum
+                for o in $thisLine
+                do
+                    sum=$((sum + o))
+                done
+            done < $TMP3
+
+            #Uses the formula (a+(b/2))/b to get proper rounding in this integer division
+            num=`expr $row / 2`
+            avg=`expr $sum + $num`
+            avg=`expr $avg / $row`
+    
+            #print the average
+            echo "$avg" | tr '\n' '\t' >> $averageFile
+    
+        done
+    
+    echo "Averages"
+    cat $averageFile
+    echo
+    echo "Medians"
+    cat $medianFile
+    echo
+
+#Error message if user entered invalid arguments for {-rows|-cols}
+else
+    echo "./stats {-rows|-cols} [file]" >&2
+    rm -f $TMP
+    exit 1
+fi
+
+############
+#Clean up
+############
+
+rm -f $tempRow
+
+rm -f $tempCol
+
+rm -f $TMP
+rm -f $TMP2
+rm -f $TMP3
+rm -f $medianFile
+rm -f $averageFile

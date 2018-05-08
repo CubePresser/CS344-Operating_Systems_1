@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#How many arguments?
+echo "Arguments: $#"
+
+datafilepath="datafile$$"
+
+if [[ $1 == -r* ]]
+then
+    echo "ROWS!"
+elif [[ $1 == -c* ]]
+then
+    echo "COLUMNS!"
+else
+    echo "ERROR: Invalid [-r, -c] argument!" >&2
+    rm -f $datafilepath
+    exit 1
+fi
+
+if [ $# = 1 ]
+then
+    cat > $datafilepath
+elif [ $# = 2 ]
+then
+    if [ ! -r $2 ]
+    then
+        echo "ERROR: unreadable file" >&2
+        rm -f $datafilepath
+        exit 1
+    fi
+    cat $2 > $datafilepath
+fi
+
+echo "Filename: $datafilepath"
+cat $datafilepath
+
+rm -f $datafilepath
